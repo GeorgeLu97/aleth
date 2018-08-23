@@ -440,10 +440,6 @@ void testBCTest(json_spirit::mObject const& _o)
     TestBlock genesisBlock(_o.at("genesisBlockHeader").get_obj(), _o.at("pre").get_obj());
 
     TestBlockChain::MiningType const miningType = getMiningType(_o);
-    eth::IncludeSeal includeSeal = (miningType == TestBlockChain::MiningType::ForceEthash ||
-                                    miningType == TestBlockChain::MiningType::Default) ?
-                WithSeal :
-                WithoutSeal;
     TestBlockChain blockchain(genesisBlock, miningType);
     TestBlockChain testChain(genesisBlock, miningType);
     assert(testChain.getInterface().isKnown(genesisBlock.blockHeader().hash(WithSeal)));
@@ -539,8 +535,7 @@ void testBCTest(json_spirit::mObject const& _o)
         }
 
         //Check that imported block to the chain is equal to declared block from test
-        bytes importedblock =
-                testChain.getInterface().block(blockFromFields.blockHeader().hash(includeSeal));
+        bytes importedblock = testChain.getInterface().block(blockFromFields.blockHeader().hash());
         TestBlock inchainBlock(toHex(importedblock));
         checkBlocks(inchainBlock, blockFromFields, testName);
 
@@ -571,7 +566,7 @@ void testBCTest(json_spirit::mObject const& _o)
 
     //Check lastblock hash
     BOOST_REQUIRE((_o.count("lastblockhash") > 0));
-    string lastTrueBlockHash = toHexPrefixed(testChain.topBlock().blockHeader().hash(includeSeal));
+    string lastTrueBlockHash = toHexPrefixed(testChain.topBlock().blockHeader().hash());
     BOOST_CHECK_MESSAGE(lastTrueBlockHash == _o.at("lastblockhash").get_str(),
                         testName + "Boost check: lastblockhash does not match " + lastTrueBlockHash + " expected: " + _o.at("lastblockhash").get_str());
 

@@ -273,6 +273,14 @@ void TestBlock::mine(TestBlockChain const& _bc)
     }
     else
         recalcBlockHeaderBytes();
+
+    // Create dummy signature for NoProof blocks
+    if (Ethash::mixHash(m_blockHeader) == h256{0})
+    {
+        m_blockHeader.setSeal(Ethash::NonceField, h64{0});
+        m_blockHeader.setSeal(Ethash::MixHashField, h256{0});
+        recalcBlockHeaderBytes();
+    }
 }
 
 void TestBlock::setBlockHeader(BlockHeader const& _header)
