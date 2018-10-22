@@ -40,10 +40,10 @@ R"E(
 		"difficultyBoundDivisor": "0x0800",
 		"durationLimit": "0x0d",
 		"blockReward": "0x4563918244F40000",
-		"networkID" : "0x1"
+		"networkID" : "0x1964"
 	},
 	"genesis": {
-		"nonce": "0x0000000000000042",
+		"nonce": "0x0000000000000074",
 		"difficulty": "0x400000000",
 		"mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
 		"author": "0x0000000000000000000000000000000000000000",

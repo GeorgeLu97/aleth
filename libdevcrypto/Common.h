@@ -29,6 +29,7 @@
 #include <libdevcore/Common.h>
 #include <libdevcore/Exceptions.h>
 #include <libdevcore/FixedHash.h>
+#include <vector>
 
 namespace dev
 {
@@ -131,6 +132,12 @@ bytesSec pbkdf2(std::string const& _pass, bytes const& _salt, unsigned _iteratio
 
 /// Derive key via Scrypt.
 bytesSec scrypt(std::string const& _pass, bytes const& _salt, uint64_t _n, uint32_t _r, uint32_t _p, unsigned _dkLen);
+
+/// secret sharing splitting
+void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, std::vector<bytes>& bytesecrets);
+
+///  secret sharing recovery
+void recoverToVec(uint64_t threshold, std::vector<bytes> secrets, bytes& msg);
 
 /// Simple class that represents a "key pair".
 /// All of the data of the class can be regenerated from the secret key (m_secret) alone.

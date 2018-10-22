@@ -86,8 +86,7 @@ public:
 
 	/// Explicit constructor for wierd cases of construction or a contract account.
 	Account(u256 _nonce, u256 _balance, h256 _contractRoot, h256 _codeHash, Changedness _c): m_isAlive(true), m_isUnchanged(_c == Unchanged), m_nonce(_nonce), m_balance(_balance), m_storageRoot(_contractRoot), m_codeHash(_codeHash) { assert(_contractRoot); }
-
-
+	
 	/// Kill this account. Useful for the suicide opcode. Following this call, isAlive() returns false.
 	void kill() { m_isAlive = false; m_storageOverlay.clear(); m_codeHash = EmptySHA3; m_storageRoot = EmptyTrie; m_balance = 0; m_nonce = 0; changed(); }
 

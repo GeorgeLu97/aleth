@@ -30,6 +30,12 @@
 #include <cryptopp/pwdbased.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/modes.h>
+#include <cryptopp/ida.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/files.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/ida.h>
+#include <cryptopp/randpool.h>
 #include <libscrypt.h>
 #include <libdevcore/SHA3.h>
 #include <libdevcore/RLP.h>
@@ -389,4 +395,68 @@ bytes ecies::kdf(Secret const& _z, bytes const& _s1, unsigned kdByteLen)
 
 	k.resize(kdByteLen);
 	return k;
+}
+
+using namespace CryptoPP;
+using namespace std;
+
+//single file -> init
+//use stringSink for unlimited bytes? 
+//shares = size of secrets vector
+void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector<bytes>& bytesecrets) {
+	AutoSeededRandomPool rng;
+
+	ChannelSwitch *channelSwitch = new ChannelSwitch;
+	ArraySource source(msg.toBytes().data(), msg.toBytes().size(), false, 
+		new SecretSharing(rng,
+		threshold, nShares, channelSwitch));
+	/* 
+	FileSource source(filename, false, new SecretSharing(rng,
+		threshold, nShares, channelSwitch)); */
+
+	vector_member_ptrs<StringSink> stringSinks(nShares);
+	vector<string> secrets(nShares);
+	string channel;
+	for (uint64_t i = 0; i < nShares; i++)
+	{
+		stringSinks[i].reset(new StringSink(secrets[i]));
+
+		channel = WordToString<word32>(i);
+		stringSinks[i]->Put((byte*)channel.data(), 4);
+		channelSwitch->AddRoute(channel, *stringSinks[i], DEFAULT_CHANNEL);
+	}
+
+	source.PumpAll();
+
+	for (uint64_t i = 0; i < nShares; i++)
+	{
+		bytesecrets.push_back(vector<byte>(secrets[i].begin(), secrets[i].end()));
+	}
+}
+
+void recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
+	string s;
+	SecretRecovery recovery(threshold, new StringSink(s));
+
+	vector_member_ptrs<StringSource> stringSources(threshold);
+	SecByteBlock channel(4);
+	int i;
+	for (i = 0; i < threshold; i++)
+	{
+		stringSources[i].reset(new StringSource(std::string(secrets[i].begin(), secrets[i].end()), false));
+		stringSources[i]->Pump(4);
+		stringSources[i]->Get(channel, 4);
+		stringSources[i]->Attach(new ChannelSwitch(recovery, string((char *)channel.begin(), 4)));
+	}
+
+	while (stringSources[0]->Pump(256))
+		for (i = 1; i < threshold; i++)
+			stringSources[i]->Pump(256);
+
+	for (i = 0; i < threshold; i++)
+	{
+		stringSources[i]->PumpAll();
+	}
+
+	msg = vector<byte>(s.begin(), s.end());
 }

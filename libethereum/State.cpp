@@ -806,3 +806,15 @@ AddressHash dev::eth::commit(AccountMap const& _cache, SecureTrieDB<Address, DB>
 
 template AddressHash dev::eth::commit<OverlayDB>(AccountMap const& _cache, SecureTrieDB<Address, OverlayDB>& _state);
 template AddressHash dev::eth::commit<MemoryDB>(AccountMap const& _cache, SecureTrieDB<Address, MemoryDB>& _state);
+
+bool State::recoverData(Address const& _address, bytes& output) {
+	std::map<h256, std::pair<u256, u256>> publishedSecrets = storage(_address);
+	RLP dataFormat(code(_address));
+	if (dataFormat[2].toInt<uint64_t>() > publishedSecrets.size()) return false;
+	vector<bytes> secrets;
+	for (auto it = publishedSecrets.begin(); it != publishedSecrets.end(); it++) {
+		secrets.push_back(RLP((it->second).second).toBytes());
+	}
+	recoverToVec(dataFormat[2].toInt<uint64_t>(), secrets, output);
+	return true;
+}
