@@ -368,15 +368,41 @@ bool Executive::create(Address const& _txSender, u256 const& _endowment, u256 co
     return createOpcode(_txSender, _endowment, _gasPrice, _gas, _init, _origin);
 }
 
+/*
+ * Function:  publishShare 
+ * ----------------------
+ * Creates params for the key publish
+ *
+ *  _receiveAddress: destination of the publish
+ *  _senderAddress: provides the gas
+ *  _value: 
+ *  _gasPrice: gas required to publish
+ *  _data: the data to publish
+ *  _gas: gas available
+ *  share: share data
+ *  shareid: index of the shares data
+ */
 bool Executive::publishShare(Address const& _receiveAddress, Address const& _senderAddress, u256 const& _value, u256 const& _gasPrice, bytesConstRef _data, u256 const& _gas, bytes share, u256 shareid)
 {
     CallParameters params{_senderAddress, _receiveAddress, _receiveAddress, _value, _value, _gas, _data, {}};
     return publishShare(params, share, shareid, _gasPrice, _senderAddress);
 }
 
+/*
+ * Function:  publishShare 
+ * ----------------------
+ * Account Updates written when submitting keyPublish
+ *
+ *  _p: the paramters for the tranasction
+ *  _gasPrice: gas required to publish
+ *  share: share data
+ *  shareid: index of the shares data
+ *  _origin: 
+ */
 bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid, u256 const& _gasPrice, Address const& _origin)
 {
     // If external transaction.
+    // Not sure what is happening here
     if (m_t)
     {
         // FIXME: changelog contains unrevertable balance change that paid
@@ -394,6 +420,7 @@ bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid
     
     /// Get the value of a storage position of an account.
     /// @returns 0 if no account exists at that address.
+    // AskGeorge: Not sure of what the exact lines are doing.
     {
         RLP const sharerlp(m_t.data());
         RLP const origData(m_s.code(_p.receiveAddress));

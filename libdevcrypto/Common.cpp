@@ -20,6 +20,9 @@
  * @date 2014
  */
 
+// George's help:
+// Key/File sotrage is just the transaction
+
 #include <libdevcore/Guards.h>  // <boost/thread> conflicts with <thread>
 #include "Common.h"
 #include <secp256k1.h>
@@ -403,10 +406,28 @@ using namespace std;
 //single file -> init
 //use stringSink for unlimited bytes? 
 //shares = size of secrets vector
+/*
+ * Function:  secretShare 
+ * ----------------------
+ * Splits msg into nShares secrets 
+ *
+ *  threshold: max length of secret
+ *	nShares: number of secrets
+ *  msg: the message to divided
+ *  bytesecrets: the secret output 
+ */
+
 void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector<bytes>& bytesecrets) {
 	AutoSeededRandomPool rng;
 
+	// The ChannelSwitch allows you to process data in parallel by pumping it to multiple filters or sinks. 
+	// It also allows you to combine multiple inputs into a single output through the use of named channels.
+	// https://www.cryptopp.com/wiki/ChannelSwitch
 	ChannelSwitch *channelSwitch = new ChannelSwitch;
+	// It's an method to create a source of bytes
+	// SecretSharing: Shamir's secret sharing algo
+	// SecretSharing(RandomNumberGenerator &rng, int threshold, int nShares, BufferedTransformation *attachment=NULL, bool addPadding=true)
+	// The following line takes the message, and outputs nShares of secrets using shamir's secret sharing
 	ArraySource source(msg.toBytes().data(), msg.toBytes().size(), false, 
 		new SecretSharing(rng,
 		threshold, nShares, channelSwitch));
@@ -414,33 +435,54 @@ void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector
 	FileSource source(filename, false, new SecretSharing(rng,
 		threshold, nShares, channelSwitch)); */
 
+	// Creating nShare pipelines for ChannelSwitch
 	vector_member_ptrs<StringSink> stringSinks(nShares);
 	vector<string> secrets(nShares);
 	string channel;
 	for (uint64_t i = 0; i < nShares; i++)
-	{
-		stringSinks[i].reset(new StringSink(secrets[i]));
+	{	// Preparing the sinks
 
+		stringSinks[i].reset(new StringSink(secrets[i]));
 		channel = WordToString<word32>(i);
 		stringSinks[i]->Put((byte*)channel.data(), 4);
+		// Adding the sinks
 		channelSwitch->AddRoute(channel, *stringSinks[i], DEFAULT_CHANNEL);
 	}
 
+	// Divide msg and add to different string vectors
 	source.PumpAll();
 
+	// Adding the bytesecrets
 	for (uint64_t i = 0; i < nShares; i++)
 	{
 		bytesecrets.push_back(vector<byte>(secrets[i].begin(), secrets[i].end()));
 	}
 }
 
+/*
+ * Function:  secretShare 
+ * ----------------------
+ * Recover msg from secrets
+ *
+ *  threshold: max length of secret
+ *	secrets: the secrets to recovered to msg
+ *  msg: the message output
+ */
+
 void recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
 	string s;
+	// SecretSharing: Shamir's secret sharing algo recovery
+	// SecretRecovery::IsolatedInitialize(const NameValuePairs & parameters = g_nullNameValuePairs)	
 	SecretRecovery recovery(threshold, new StringSink(s));
 
 	vector_member_ptrs<StringSource> stringSources(threshold);
+
+	// The advantage of using SecByteBlock is you get the managed buffer with zeroization
+	// Ask George: Why channel(4)? TODO
 	SecByteBlock channel(4);
 	int i;
+
+	// Setting up the ChannelSwitch pipeline
 	for (i = 0; i < threshold; i++)
 	{
 		stringSources[i].reset(new StringSource(std::string(secrets[i].begin(), secrets[i].end()), false));
@@ -449,6 +491,7 @@ void recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
 		stringSources[i]->Attach(new ChannelSwitch(recovery, string((char *)channel.begin(), 4)));
 	}
 
+	// Decrypting the secret
 	while (stringSources[0]->Pump(256))
 		for (i = 1; i < threshold; i++)
 			stringSources[i]->Pump(256);
@@ -457,6 +500,6 @@ void recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
 	{
 		stringSources[i]->PumpAll();
 	}
-
+	// Recovering msg
 	msg = vector<byte>(s.begin(), s.end());
 }

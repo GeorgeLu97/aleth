@@ -101,11 +101,34 @@ TransactionBase::TransactionBase(bytesConstRef _rlpData, CheckTransaction _check
 	}
 }
 
+// This is to publish the file(a part of the secret)
+// What is h256?
+// What is ind?
+// What does this do:
+// : m_type(KeyPublish), m_nonce(_nonce), m_value(_value), m_receiveAddress(_dest), m_gasPrice(_gasPrice), m_gas(_gas) ?
+// This is for recovery
+
+/*
+ * Constructor:  TransactionBase 
+ * ----------------------
+ * Add Key + File transactions
+ *
+ *  _value: 
+ *	_gasPrice: gas required to make transaction
+ *  _gas:
+ *	_dest: destination address of file/key
+ *  _shareData: data to be stored
+ *	ind: 
+ *  (?)releaseCert: the authorization
+ *  (?)_nonce: nonce for the transaction
+ */
+
 TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, Address const& _dest, 
 	bytes const& _shareData, u256 ind, h256 releaseCert, 
 	u256 const& _nonce = 0) 
 	: m_type(KeyPublish), m_nonce(_nonce), m_value(_value), m_receiveAddress(_dest), m_gasPrice(_gasPrice), m_gas(_gas) 
 {
+	// RLPStream Serialize data to bytes
 	RLPStream dataContent; 
 	dataContent << _shareData << ind << releaseCert;
 	m_data = dataContent.out();
@@ -113,6 +136,24 @@ TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256
 }
 
 ///Key Release
+// Previous with a signature
+
+/*
+ * Constructor:  TransactionBase 
+ * ----------------------
+ * Add Key + File transactions with a signature
+ *
+ *  _value: 
+ *	_gasPrice: gas required to make transaction
+ *  _gas:
+ *	_dest: destination address of file/key
+ *  _shareData: data to be stored
+ *	ind: 
+ *  (?)releaseCert: the authorization
+ *  (?)_nonce: nonce for the transaction
+ * 	_secret: key used to sign
+ */
+
 TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, Address const& _dest, 
 	bytes const& _shareData, u256 ind, h256 releaseCert, 
 	u256 const& _nonce, Secret const& _secret) : TransactionBase::TransactionBase(_value, _gasPrice, _gas, _dest, _shareData, ind, releaseCert, _nonce) {
@@ -125,16 +166,36 @@ TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256
 
 ///m_data[0] = { releaseTime[0], shares[1], thresh[2], allpairs[3], publicKey[4], encryptedData[5] }
 ///shares = { address[0], share[1], r[2], s[3], v[4] }
+
+/*
+ * Constructor:  TransactionBase 
+ * ----------------------
+ * Constructs a signed FilePublish transaction.
+ *
+ *  _value: 
+ *	_gasPrice: gas required to make transaction
+ *  _gas:
+ *  _data: data to for the transaction
+ *  releaseTime: time to release the FilePublish transaction
+ *  shares: number of shares
+ *  threshold: the threshold for one share
+ *	candidates: 
+ *  _nonce: nonce for the transaction
+ * 	_secret: key used to sign
+ */
 TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, bytes const& _data, 
 	uint64_t releaseTime, uint64_t shares, uint64_t threshold, vector<Public> const& candidates,  
 	u256 const& _nonce, Secret const& _secret)
 	: m_type(FilePublish), m_nonce(_nonce), m_value(_value), m_gasPrice(_gasPrice), m_gas(_gas)  {
+	// Building the byte stream to push data out
 	RLPStream dataContent;
 	dataContent << releaseTime << shares << threshold;
 	vector<bytes> secrets;
 
+	// What do the following two lines do?
 	KeyPair k(Secret::random());
 	bytes keyBytes = k.secret().makeInsecure().asBytes();
+	// Symm. encryption of the dat being setup
 	bytes encryptedData;
 	encryptSym(k.secret(), &_data, encryptedData);
 	secretShare(threshold, shares, vector_ref<byte const>(&keyBytes), secrets);
@@ -143,6 +204,7 @@ TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256
 	for(uint64_t i = 0; i < shares; i++) {
 		RLPStream singlePair; 
 		bytes encryptedShare;
+		// What are candidates?
 		encrypt(candidates[i], &secrets[i], encryptedShare);
 
 		SignatureStruct signedShare = dev::sign(_secret, dev::sha3(&secrets[i]));
