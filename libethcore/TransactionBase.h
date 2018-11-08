@@ -24,6 +24,8 @@
 #include <libdevcore/SHA3.h>
 
 #include <boost/optional.hpp>
+#include <vector>
+#include <tuple>
 
 namespace dev
 {
@@ -44,6 +46,29 @@ enum class CheckTransaction
 	None,
 	Cheap,
 	Everything
+};
+
+class FileData {
+public:
+	FileData(bytes b);
+	FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, bytes const& trueData);
+	bytes toBytes();
+	uint64_t m_releaseTime;
+	uint64_t m_shareCount;
+	uint64_t m_shareThresh;
+	std::vector<std::tuple<Address, bytes, Signature>> m_candidateList;
+	bytes m_encryptedData;
+	Public m_verifierKey;
+};
+
+class KeyData {
+public:
+	KeyData(bytes b);
+	KeyData(bytes shareData, u256 shareIndex, h256 releaseCert) : m_shareData(shareData), m_shareIndex(shareIndex), m_releaseCert(releaseCert) {};
+	bytes toBytes();
+	bytes m_shareData;
+	u256 m_shareIndex;
+	h256 m_releaseCert;
 };
 
 /// Encodes a transaction, ready to be exported to or freshly imported from RLP.
@@ -75,7 +100,7 @@ public:
 
 	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, Address const& _dest, 
 	bytes const& _shareData, u256 ind, h256 releaseCert, 
-	u256 const& _nonce = 0);
+	u256 const& _nonce);
 
 	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, Address const& _dest, 
 		bytes const& _shareData, u256 ind, h256 releaseCert, 
@@ -85,7 +110,7 @@ public:
 	///include encrypted data, account - symmetric key encrypted secret share, encrypted? signature. 
 	///Key for shares is auto randomized.
 	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, bytes const& _data, 
-		uint64_t releaseTime, uint64_t shares, uint64_t threshold, vector<Public> const& candidates,
+		uint64_t releaseTime, uint64_t shares, uint64_t threshold, std::vector<Public> const& candidates,
 		u256 const& _nonce, Secret const& _secret);
 
 	/// Constructs a transaction from the given RLP.

@@ -26,6 +26,7 @@
 #include <libethcore/ChainOperationParams.h>
 #include <libdevcore/RLP.h>
 #include <libdevcore/SHA3.h>
+#include <vector>
 
 namespace dev
 {
@@ -120,7 +121,7 @@ public:
 
 	/// Constructs a signed FilePublish transaction.
 	Transaction(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, bytes const& _data,
-		uint64_t releaseTime, uint64_t shares, uint64_t threshold, vector<Public> const& candidates,
+		uint64_t releaseTime, uint64_t shares, uint64_t threshold, std::vector<Public> const& candidates,
 		u256 const& _nonce, Secret const& _secret) : 
 		TransactionBase(_value, _gasPrice, _gas, _data, releaseTime, shares, threshold, candidates, _nonce, _secret)
 	{}

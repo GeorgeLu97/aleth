@@ -417,7 +417,7 @@ using namespace std;
  *  bytesecrets: the secret output 
  */
 
-void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector<bytes>& bytesecrets) {
+void dev::secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector<bytes>& bytesecrets) {
 	AutoSeededRandomPool rng;
 
 	// The ChannelSwitch allows you to process data in parallel by pumping it to multiple filters or sinks. 
@@ -468,8 +468,7 @@ void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector
  *	secrets: the secrets to recovered to msg
  *  msg: the message output
  */
-
-void recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
+void dev::recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
 	string s;
 	// SecretSharing: Shamir's secret sharing algo recovery
 	// SecretRecovery::IsolatedInitialize(const NameValuePairs & parameters = g_nullNameValuePairs)	

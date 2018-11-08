@@ -30,6 +30,63 @@ using namespace std;
 using namespace dev;
 using namespace dev::eth;
 
+FileData::FileData(bytes b) {
+	RLP dataContent(b);
+	m_releaseTime = dataContent[0].toInt<uint64_t>();
+	m_shareCount = dataContent[1].toInt<uint64_t>();
+	m_shareThresh = dataContent[2].toInt<uint64_t>();
+	RLP AllPairs = dataContent[3];
+	for (uint64_t i = 0; i < m_shareCount; i++) {
+		RLP singlePair = AllPairs[i];
+		m_candidateList.push_back(make_tuple(Address(singlePair[0].toBytes()), singlePair[1].toBytes(), Signature(singlePair[2].toBytes())));
+	}
+	m_verifierKey = Public(dataContent[4].toBytes());
+	m_encryptedData = dataContent[5].toBytes();
+}
+
+FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, vector<Public> candidates, Secret const& secret, bytes const& trueData) : m_releaseTime(releaseTime), m_shareCount(shares), m_shareThresh(thresh)
+{
+	KeyPair k(Secret::random());
+	bytes keyBytes = k.secret().makeInsecure().asBytes();
+	vector<bytes> secrets;
+	m_verifierKey = toPublic(secret);
+	encryptSym(k.secret(), &trueData, m_encryptedData);
+	secretShare(thresh, shares, vector_ref<byte const>(&keyBytes), secrets);
+	for (uint64_t i = 0; i < shares; i++) {
+		bytes encryptedShare;
+		encrypt(candidates[i], &secrets[i], encryptedShare);
+		SignatureStruct signedShare = dev::sign(secret, dev::sha3(&secrets[i]));
+		m_candidateList.push_back(make_tuple(toAddress(candidates[i]), encryptedShare, Signature(signedShare)));
+	}
+}
+
+bytes FileData::toBytes() {
+	RLPStream dataContent;
+	dataContent << m_releaseTime << m_shareCount << m_shareThresh;
+	RLPStream AllPairs;
+
+	for (uint64_t i = 0; i < m_shareCount; i++) {
+		RLPStream singlePair;
+		singlePair << get<0>(m_candidateList[i]).asBytes() << get<1>(m_candidateList[i]) << get<2>(m_candidateList[i]).asBytes();
+		AllPairs << singlePair.out();
+	}
+	dataContent << AllPairs.out() << m_verifierKey.ref() << m_encryptedData;
+	return dataContent.out();
+}
+
+KeyData::KeyData(bytes b) {
+	RLP keyContent(b);
+	m_shareData = keyContent[0].toBytes();
+	m_shareIndex = keyContent[1].toInt<u256>();
+	m_releaseCert = h256(keyContent[2].toBytes());
+}
+
+bytes KeyData::toBytes() {
+	RLPStream keyContent;
+	keyContent << m_shareData << m_shareIndex << m_releaseCert.asBytes();
+	return keyContent.out();
+}
+
 TransactionBase::TransactionBase(TransactionSkeleton const& _ts, Secret const& _s):
 	m_type(_ts.creation ? ContractCreation : MessageCall),
 	m_nonce(_ts.nonce),
@@ -128,11 +185,8 @@ TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256
 	u256 const& _nonce = 0) 
 	: m_type(KeyPublish), m_nonce(_nonce), m_value(_value), m_receiveAddress(_dest), m_gasPrice(_gasPrice), m_gas(_gas) 
 {
-	// RLPStream Serialize data to bytes
-	RLPStream dataContent; 
-	dataContent << _shareData << ind << releaseCert;
-	m_data = dataContent.out();
-
+	KeyData k(_shareData, ind, releaseCert);
+	m_data = k.toBytes();
 }
 
 ///Key Release
@@ -189,31 +243,8 @@ TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256
 	: m_type(FilePublish), m_nonce(_nonce), m_value(_value), m_gasPrice(_gasPrice), m_gas(_gas)  {
 	// Building the byte stream to push data out
 	RLPStream dataContent;
-	dataContent << releaseTime << shares << threshold;
-	vector<bytes> secrets;
-
-	// What do the following two lines do?
-	KeyPair k(Secret::random());
-	bytes keyBytes = k.secret().makeInsecure().asBytes();
-	// Symm. encryption of the dat being setup
-	bytes encryptedData;
-	encryptSym(k.secret(), &_data, encryptedData);
-	secretShare(threshold, shares, vector_ref<byte const>(&keyBytes), secrets);
-
-	RLPStream AllPairs;
-	for(uint64_t i = 0; i < shares; i++) {
-		RLPStream singlePair; 
-		bytes encryptedShare;
-		// What are candidates?
-		encrypt(candidates[i], &secrets[i], encryptedShare);
-
-		SignatureStruct signedShare = dev::sign(_secret, dev::sha3(&secrets[i]));
-
-		singlePair << toAddress(candidates[i]).asBytes() << encryptedShare << signedShare.r << signedShare.s << signedShare.v; 
-		AllPairs << singlePair.out();
-	}
-	dataContent << AllPairs.out() << toPublic(_secret).ref() << encryptedData;
-	m_data = dataContent.out();
+	FileData f(releaseTime, shares, threshold, candidates, _secret, _data);
+	m_data = f.toBytes();
 	sign(_secret);
 }
 

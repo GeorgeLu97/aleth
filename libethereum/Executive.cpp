@@ -31,6 +31,7 @@
 #include <boost/timer.hpp>
 
 #include <numeric>
+#include <tuple>
 
 using namespace std;
 using namespace dev;
@@ -388,6 +389,29 @@ bool Executive::publishShare(Address const& _receiveAddress, Address const& _sen
     return publishShare(params, share, shareid, _gasPrice, _senderAddress);
 }
 
+
+/*
+bytes u256toBytes(u256 i) {
+	int len = (int)(i & 0xFF);
+	bytes b;
+	for (i = 0; i < len; i++) {
+		i >>= 8;
+		b.push_back((byte)(i & 0xFF));
+	}
+	return b;
+}
+*/
+
+u256 bytestoU256(bytes b) {
+	u256 i;
+	for (auto it = b.rbegin(); it != b.rend(); it++) {
+		i += (u256)(*it);
+		i <<= 8;
+	}
+	i += (u256)b.size();
+	return i;
+}
+
 /*
  * Function:  publishShare 
  * ----------------------
@@ -401,8 +425,6 @@ bool Executive::publishShare(Address const& _receiveAddress, Address const& _sen
  */
 bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid, u256 const& _gasPrice, Address const& _origin)
 {
-    // If external transaction.
-    // Not sure what is happening here
     if (m_t)
     {
         // FIXME: changelog contains unrevertable balance change that paid
@@ -420,17 +442,15 @@ bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid
     
     /// Get the value of a storage position of an account.
     /// @returns 0 if no account exists at that address.
-    // AskGeorge: Not sure of what the exact lines are doing.
     {
-        RLP const sharerlp(m_t.data());
-        RLP const origData(m_s.code(_p.receiveAddress));
-        int ind = (int)sharerlp[1].toInt<u256>();
-		const Public k(origData[4].toBytes().data(), Public::ConstructFromPointer);
-        SignatureStruct s(origData[3][ind][2].toHash<h256>(),origData[3][ind][3].toHash<h256>(),origData[3][ind][4].toInt<byte>());
-        if(m_s.storage(_p.receiveAddress, ind) == 0 && /* not already added */
-            verify(k, s, dev::sha3(sharerlp[0].toBytes())) /* hash correct*/ 
-			/* TODO: Check Certificate Correct, need blockchain? */) {  
-            m_s.setStorage(_p.receiveAddress, ind, sharerlp[0].toInt<u256>() /* Needs to be short enough to work */); 
+		KeyData shareinfo(m_t.data());
+        FileData origData(m_s.code(_p.receiveAddress));
+		int ind = (int)shareinfo.m_shareIndex;
+        SignatureStruct s(std::get<2>(origData.m_candidateList[ind]));
+        if(m_s.storage(_p.receiveAddress, ind) == 0 &&
+            verify(origData.m_verifierKey, s, dev::sha3(shareinfo.m_shareData))  
+			) {  //TODO: Check Certificate Correct, need blockchain
+            m_s.setStorage(_p.receiveAddress, ind, bytestoU256(shareinfo.m_shareData) ); // Needs to be short enough to work
             return !m_ext;
         } else {
             m_excepted = TransactionException::Unknown;
@@ -438,7 +458,7 @@ bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid
             return true;
         }
     }
-
+	
 
 }
 
