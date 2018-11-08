@@ -403,7 +403,7 @@ using namespace std;
 //single file -> init
 //use stringSink for unlimited bytes? 
 //shares = size of secrets vector
-void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector<bytes>& bytesecrets) {
+void dev::secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector<bytes>& bytesecrets) {
 	AutoSeededRandomPool rng;
 
 	ChannelSwitch *channelSwitch = new ChannelSwitch;
@@ -434,7 +434,7 @@ void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector
 	}
 }
 
-void recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
+void dev::recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
 	string s;
 	SecretRecovery recovery(threshold, new StringSink(s));
 

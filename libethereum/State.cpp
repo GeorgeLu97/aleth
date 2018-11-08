@@ -807,6 +807,16 @@ AddressHash dev::eth::commit(AccountMap const& _cache, SecureTrieDB<Address, DB>
 template AddressHash dev::eth::commit<OverlayDB>(AccountMap const& _cache, SecureTrieDB<Address, OverlayDB>& _state);
 template AddressHash dev::eth::commit<MemoryDB>(AccountMap const& _cache, SecureTrieDB<Address, MemoryDB>& _state);
 
+bytes u256toBytes(u256 i) {
+	int len = (int)(i & 0xFF);
+	bytes b;
+	for (i = 0; i < len; i++) {
+		i >>= 8;
+		b.push_back((byte)(i & 0xFF));
+	}
+	return b;
+}
+
 bool State::recoverData(Address const& _address, bytes& output) {
 	std::map<h256, std::pair<u256, u256>> publishedSecrets = storage(_address);
 	RLP dataFormat(code(_address));
@@ -814,7 +824,7 @@ bool State::recoverData(Address const& _address, bytes& output) {
 	if (dataFormat[2].toInt<uint64_t>() > publishedSecrets.size()) return false;
 	vector<bytes> secrets;
 	for (auto it = publishedSecrets.begin(); it != publishedSecrets.end(); it++) {
-		secrets.push_back(RLP((it->second).second).toBytes());
+		secrets.push_back(u256toBytes((it->second).second));
 	}
 	recoverToVec(dataFormat[2].toInt<uint64_t>(), secrets, secretkey);
 	Secret sk(secretkey);

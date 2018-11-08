@@ -369,27 +369,41 @@ bool Executive::create(Address const& _txSender, u256 const& _endowment, u256 co
     return createOpcode(_txSender, _endowment, _gasPrice, _gas, _init, _origin);
 }
 
+
 bool Executive::publishShare(Address const& _receiveAddress, Address const& _senderAddress, u256 const& _value, u256 const& _gasPrice, bytesConstRef _data, u256 const& _gas, bytes share, u256 shareid)
 {
     CallParameters params{_senderAddress, _receiveAddress, _receiveAddress, _value, _value, _gas, _data, {}};
     return publishShare(params, share, shareid, _gasPrice, _senderAddress);
 }
 
+
+/*
 bytes u256toBytes(u256 i) {
-	RLP r1(i);
-	return r1[0].toBytes();
+	int len = (int)(i & 0xFF);
+	bytes b;
+	for (i = 0; i < len; i++) {
+		i >>= 8;
+		b.push_back((byte)(i & 0xFF));
+	}
+	return b;
 }
+*/
 
 u256 bytestoU256(bytes b) {
-	RLPStream r;
-	r << b;
-	RLP r1(r.out());
-	return r1.toInt<u256>();
+	u256 i;
+	for (auto it = b.rbegin(); it != b.rend(); it++) {
+		i += (u256)(*it);
+		i <<= 8;
+	}
+	i += (u256)b.size();
+	return i;
 }
+
+
 
 bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid, u256 const& _gasPrice, Address const& _origin)
 {
-    // If external transaction.
+	
     if (m_t)
     {
         // FIXME: changelog contains unrevertable balance change that paid
@@ -412,10 +426,10 @@ bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid
         FileData origData(m_s.code(_p.receiveAddress));
 		int ind = (int)shareinfo.m_shareIndex;
         SignatureStruct s(std::get<2>(origData.m_candidateList[ind]));
-        if(m_s.storage(_p.receiveAddress, ind) == 0 && /* not already added */
-            verify(origData.m_verifierKey, s, dev::sha3(shareinfo.m_shareData)) /* hash correct*/ 
-			/* TODO: Check Certificate Correct, need blockchain? */) {  
-            m_s.setStorage(_p.receiveAddress, ind, bytestoU256(shareinfo.m_shareData)  /* Needs to be short enough to work */); 
+        if(m_s.storage(_p.receiveAddress, ind) == 0 &&
+            verify(origData.m_verifierKey, s, dev::sha3(shareinfo.m_shareData))  
+			) {  //TODO: Check Certificate Correct, need blockchain
+            m_s.setStorage(_p.receiveAddress, ind, bytestoU256(shareinfo.m_shareData) ); // Needs to be short enough to work
             return !m_ext;
         } else {
             m_excepted = TransactionException::Unknown;
@@ -423,7 +437,7 @@ bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid
             return true;
         }
     }
-
+	
 
 }
 
