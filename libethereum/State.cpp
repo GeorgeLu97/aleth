@@ -810,11 +810,14 @@ template AddressHash dev::eth::commit<MemoryDB>(AccountMap const& _cache, Secure
 bool State::recoverData(Address const& _address, bytes& output) {
 	std::map<h256, std::pair<u256, u256>> publishedSecrets = storage(_address);
 	RLP dataFormat(code(_address));
+	bytes secretkey;
 	if (dataFormat[2].toInt<uint64_t>() > publishedSecrets.size()) return false;
 	vector<bytes> secrets;
 	for (auto it = publishedSecrets.begin(); it != publishedSecrets.end(); it++) {
 		secrets.push_back(RLP((it->second).second).toBytes());
 	}
-	recoverToVec(dataFormat[2].toInt<uint64_t>(), secrets, output);
+	recoverToVec(dataFormat[2].toInt<uint64_t>(), secrets, secretkey);
+	Secret sk(secretkey);
+	decryptSym(sk, dataFormat[5].toBytesConstRef(), output);
 	return true;
 }
