@@ -314,6 +314,12 @@ public:
     /// Change the chain start block.
     void setChainStartBlockNumber(unsigned _number);
 
+	std::vector<h512> samplePublicKeys(uint64_t n, unsigned length);
+
+	h256 firstHashAfter(uint64_t timestamp);
+
+	bool BlockChain::isFirstHashAfter(uint64_t timestamp, h256 certhash);
+
 private:
     static h256 chunkId(unsigned _level, unsigned _index) { return h256(_index * 0xff + _level); }
 

@@ -275,7 +275,9 @@ public:
     /// Sets the code of the account. Must only be called during / after contract creation.
     void setCode(Address const& _address, bytes&& _code);
 
-	bool recoverData(Address const& _address, bytes& output);
+	bool recoverData(Address const& _address, Secret& output);
+
+	std::vector<KeyData> decryptShares(Address const& _address, Secret sk, h256 releaseCert);
 
     /// Delete an account (used for processing suicides).
     void kill(Address _a);
