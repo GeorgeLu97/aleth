@@ -283,7 +283,7 @@ bool Executive::execute()
         return create(m_t.sender(), m_t.value(), m_t.gasPrice(), m_t.gas() - (u256)m_baseGasRequired, &m_t.data(), m_t.sender());
 	else {
 		if (m_t.isDataTransaction()) {
-			return publishShare(m_t.receiveAddress(), m_t.sender(), m_t.value(), m_t.gasPrice(), bytesConstRef(&m_t.data()), m_t.gas() - (u256)m_baseGasRequired, RLP(m_t.data())[0].toBytes(), RLP(m_t.data())[1].toInt<u256>());
+			return publishShare(m_t.receiveAddress(), m_t.sender(), m_t.value(), m_t.gasPrice(), bytesConstRef(&m_t.data()), m_t.gas() - (u256)m_baseGasRequired);
 		}
 		else {
 			return call(m_t.receiveAddress(), m_t.sender(), m_t.value(), m_t.gasPrice(), bytesConstRef(&m_t.data()), m_t.gas() - (u256)m_baseGasRequired);
@@ -383,10 +383,10 @@ bool Executive::create(Address const& _txSender, u256 const& _endowment, u256 co
  *  share: share data
  *  shareid: index of the shares data
  */
-bool Executive::publishShare(Address const& _receiveAddress, Address const& _senderAddress, u256 const& _value, u256 const& _gasPrice, bytesConstRef _data, u256 const& _gas, bytes share, u256 shareid)
+bool Executive::publishShare(Address const& _receiveAddress, Address const& _senderAddress, u256 const& _value, u256 const& _gasPrice, bytesConstRef _data, u256 const& _gas)
 {
     CallParameters params{_senderAddress, _receiveAddress, _receiveAddress, _value, _value, _gas, _data, {}};
-    return publishShare(params, share, shareid, _gasPrice, _senderAddress);
+    return publishShare(params, _gasPrice, _senderAddress);
 }
 
 
@@ -423,8 +423,10 @@ u256 bytestoU256(bytes b) {
  *  shareid: index of the shares data
  *  _origin: 
  */
-bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid, u256 const& _gasPrice, Address const& _origin)
+bool Executive::publishShare(CallParameters const& _p, u256 const& _gasPrice, Address const& _origin)
 {
+	(void)_gasPrice;
+	(void)_origin;
     if (m_t)
     {
         // FIXME: changelog contains unrevertable balance change that paid

@@ -41,7 +41,7 @@ FileData::FileData(bytes b) {
 		m_candidateList.push_back(make_tuple(Address(singlePair[0].toBytes()), singlePair[1].toBytes(), Signature(singlePair[2].toBytes())));
 	}
 	m_verifierKey = Public(dataContent[4].toBytes());
-	m_encryptedData = dataContent[5].toBytes();
+	m_encryptedDataHash = dataContent[5].toHash<h256>();
 }
 
 FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, vector<Public> candidates, Secret const& secret, bytes const& trueData) : m_releaseTime(releaseTime), m_shareCount(shares), m_shareThresh(thresh)
@@ -50,7 +50,9 @@ FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, vecto
 	bytes keyBytes = k.secret().makeInsecure().asBytes();
 	vector<bytes> secrets;
 	m_verifierKey = toPublic(secret);
-	encryptSym(k.secret(), &trueData, m_encryptedData);
+	bytes encryptedData;
+	encryptSym(k.secret(), &trueData, encryptedData);
+	m_encryptedDataHash = dev::sha3(encryptedData);
 	secretShare(thresh, shares, vector_ref<byte const>(&keyBytes), secrets);
 	for (uint64_t i = 0; i < shares; i++) {
 		bytes encryptedShare;
@@ -70,7 +72,7 @@ bytes FileData::toBytes() {
 		singlePair << get<0>(m_candidateList[i]).asBytes() << get<1>(m_candidateList[i]) << get<2>(m_candidateList[i]).asBytes();
 		AllPairs << singlePair.out();
 	}
-	dataContent << AllPairs.out() << m_verifierKey.ref() << m_encryptedData;
+	dataContent << AllPairs.out() << m_verifierKey.ref() << m_encryptedDataHash;
 	return dataContent.out();
 }
 

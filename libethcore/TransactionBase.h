@@ -57,7 +57,8 @@ public:
 	uint64_t m_shareCount;
 	uint64_t m_shareThresh;
 	std::vector<std::tuple<Address, bytes, Signature>> m_candidateList;
-	bytes m_encryptedData;
+	///bytes m_encryptedData;
+	h256 m_encryptedDataHash;
 	Public m_verifierKey;
 };
 

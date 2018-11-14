@@ -112,6 +112,11 @@ public:
     /// This causes a complete reset of current block.
     void setAuthor(Address const& _id) { m_author = _id; resetCurrent(); }
 
+	Public publickey() const { return m_publicKey; }
+
+	/// Does not have public key by default, needs to be set with this
+	void setPublicKey(Public const& _pk) { m_publicKey = _pk; if (_pk != Public()) { m_author = toAddress(_pk); }; resetCurrent(); }
+
     /// Note the fact that this block is being used with a particular chain.
     /// Call this before using any non-const methods.
     void noteChain(BlockChain const& _bc);
@@ -309,6 +314,7 @@ private:
     bytes m_currentUncles;						///< The RLP-encoded block of uncles.
 
     Address m_author;							///< Our address (i.e. the address to which fees go).
+	Public m_publicKey;
 
     SealEngineFace* m_sealEngine = nullptr;		///< The chain's seal engine.
 

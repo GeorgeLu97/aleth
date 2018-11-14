@@ -418,44 +418,10 @@ using namespace std;
  */
 
 void dev::secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector<bytes>& bytesecrets) {
-	AutoSeededRandomPool rng;
-
-	// The ChannelSwitch allows you to process data in parallel by pumping it to multiple filters or sinks. 
-	// It also allows you to combine multiple inputs into a single output through the use of named channels.
-	// https://www.cryptopp.com/wiki/ChannelSwitch
-	ChannelSwitch *channelSwitch = new ChannelSwitch;
-	// It's an method to create a source of bytes
-	// SecretSharing: Shamir's secret sharing algo
-	// SecretSharing(RandomNumberGenerator &rng, int threshold, int nShares, BufferedTransformation *attachment=NULL, bool addPadding=true)
-	// The following line takes the message, and outputs nShares of secrets using shamir's secret sharing
-	ArraySource source(msg.toBytes().data(), msg.toBytes().size(), false, 
-		new SecretSharing(rng,
-		threshold, nShares, channelSwitch));
-	/* 
-	FileSource source(filename, false, new SecretSharing(rng,
-		threshold, nShares, channelSwitch)); */
-
-	// Creating nShare pipelines for ChannelSwitch
-	vector_member_ptrs<StringSink> stringSinks(nShares);
-	vector<string> secrets(nShares);
-	string channel;
-	for (uint64_t i = 0; i < nShares; i++)
-	{	// Preparing the sinks
-
-		stringSinks[i].reset(new StringSink(secrets[i]));
-		channel = WordToString<word32>(i);
-		stringSinks[i]->Put((byte*)channel.data(), 4);
-		// Adding the sinks
-		channelSwitch->AddRoute(channel, *stringSinks[i], DEFAULT_CHANNEL);
-	}
-
-	// Divide msg and add to different string vectors
-	source.PumpAll();
-
-	// Adding the bytesecrets
-	for (uint64_t i = 0; i < nShares; i++)
-	{
-		bytesecrets.push_back(vector<byte>(secrets[i].begin(), secrets[i].end()));
+	string msgstring(msg.begin(), msg.end());
+	vector<string> s = shareSecrets((int)threshold, (int)nShares, msgstring);
+	for (auto it = s.begin(); it != s.end(); it++) {
+		bytesecrets.emplace_back(it->begin(), it->end());
 	}
 }
 
@@ -469,36 +435,65 @@ void dev::secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, v
  *  msg: the message output
  */
 void dev::recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
+	vector<string> stringsecrets;
+	for (auto it = secrets.begin(); it != secrets.end(); it++) {
+		string s(it->begin(), it->end());
+		stringsecrets.push_back(s);
+	}
+	string s = recoverToString((int)threshold, stringsecrets);
+	msg = bytes(s.begin(), s.end());
+}
+
+string dev::recoverToString(int thresh_, vector<string> secrets_) {
 	string s;
-	// SecretSharing: Shamir's secret sharing algo recovery
-	// SecretRecovery::IsolatedInitialize(const NameValuePairs & parameters = g_nullNameValuePairs)	
-	SecretRecovery recovery(threshold, new StringSink(s));
+	SecretRecovery recovery(thresh_, new StringSink(s));
 
-	vector_member_ptrs<StringSource> stringSources(threshold);
-
-	// The advantage of using SecByteBlock is you get the managed buffer with zeroization
-	// Ask George: Why channel(4)? TODO
+	vector_member_ptrs<StringSource> stringSources(thresh_);
 	SecByteBlock channel(4);
 	int i;
-
-	// Setting up the ChannelSwitch pipeline
-	for (i = 0; i < threshold; i++)
+	for (i = 0; i < thresh_; i++)
 	{
-		stringSources[i].reset(new StringSource(std::string(secrets[i].begin(), secrets[i].end()), false));
+		stringSources[i].reset(new StringSource(secrets_[i], false));
 		stringSources[i]->Pump(4);
 		stringSources[i]->Get(channel, 4);
 		stringSources[i]->Attach(new ChannelSwitch(recovery, string((char *)channel.begin(), 4)));
 	}
 
-	// Decrypting the secret
+	/*
 	while (stringSources[0]->Pump(256))
-		for (i = 1; i < threshold; i++)
+		for (i = 1; i < thresh_; i++)
 			stringSources[i]->Pump(256);
+			*/
 
-	for (i = 0; i < threshold; i++)
+	for (i = 0; i < thresh_; i++)
 	{
 		stringSources[i]->PumpAll();
 	}
-	// Recovering msg
-	msg = vector<byte>(s.begin(), s.end());
+	return s;
+}
+
+vector<string> dev::shareSecrets(int thresh_, int nShares, string input) {
+
+	AutoSeededRandomPool rng;
+
+	ChannelSwitch *channelSwitch = new ChannelSwitch;
+
+	StringSource source(input, false, new SecretSharing(rng,
+		thresh_, nShares, channelSwitch));
+
+	vector_member_ptrs<StringSink> stringSinks(nShares);
+	vector<string> secrets(nShares);
+	string channel;
+	for (int i = 0; i < nShares; i++)
+	{
+		stringSinks[i].reset(new StringSink(secrets[i]));
+
+		channel = WordToString<word32>(i);
+		stringSinks[i]->Put((byte*)channel.data(), 4);
+		channelSwitch->AddRoute(channel, *stringSinks[i], DEFAULT_CHANNEL);
+	}
+
+	source.PumpAll();
+
+	return secrets;
 }
