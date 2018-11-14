@@ -20,9 +20,6 @@
  * @date 2014
  */
 
-// George's help:
-// Key/File sotrage is just the transaction
-
 #include <libdevcore/Guards.h>  // <boost/thread> conflicts with <thread>
 #include "Common.h"
 #include <secp256k1.h>
@@ -411,7 +408,7 @@ using namespace std;
  * ----------------------
  * Splits msg into nShares secrets 
  *
- *  threshold: max length of secret
+ *  threshold: min number to recover secret
  *	nShares: number of secrets
  *  msg: the message to divided
  *  bytesecrets: the secret output 
@@ -460,12 +457,12 @@ void dev::secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, v
 }
 
 /*
- * Function:  secretShare 
+ * Function:  recoverToVec 
  * ----------------------
  * Recover msg from secrets
  *
- *  threshold: max length of secret
- *	secrets: the secrets to recovered to msg
+ *  threshold: min number to recover secret
+ *	secrets: the secrets recovered to msg
  *  msg: the message output
  */
 void dev::recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {

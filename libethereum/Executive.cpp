@@ -370,7 +370,7 @@ bool Executive::create(Address const& _txSender, u256 const& _endowment, u256 co
 }
 
 /*
- * Function:  publishShare 
+ * Function 1: publishShare 
  * ----------------------
  * Creates params for the key publish
  *
@@ -413,7 +413,7 @@ u256 bytestoU256(bytes b) {
 }
 
 /*
- * Function:  publishShare 
+ * Function 2:  publishShare 
  * ----------------------
  * Account Updates written when submitting keyPublish
  *
@@ -421,7 +421,7 @@ u256 bytestoU256(bytes b) {
  *  _gasPrice: gas required to publish
  *  share: share data
  *  shareid: index of the shares data
- *  _origin: 
+ *  _origin: sending address
  */
 bool Executive::publishShare(CallParameters const& _p, bytes share, u256 shareid, u256 const& _gasPrice, Address const& _origin)
 {
