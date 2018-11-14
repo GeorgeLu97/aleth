@@ -139,6 +139,10 @@ void secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, std::v
 ///  secret sharing recovery
 void recoverToVec(uint64_t threshold, std::vector<bytes> secrets, bytes& msg);
 
+std::string recoverToString(int thresh_, std::vector<std::string> secrets_);
+
+std::vector<std::string> shareSecrets(int thresh_, int nShares, std::string input);
+
 /// Simple class that represents a "key pair".
 /// All of the data of the class can be regenerated from the secret key (m_secret) alone.
 /// Actually stores a tuplet of secret, public and address (the right 160-bits of the public).

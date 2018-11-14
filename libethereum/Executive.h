@@ -162,8 +162,8 @@ public:
     bool call(Address const& _receiveAddress, Address const& _txSender, u256 const& _txValue, u256 const& _gasPrice, bytesConstRef _txData, u256 const& _gas);
     bool call(CallParameters const& _cp, u256 const& _gasPrice, Address const& _origin);
 
-    bool publishShare(Address const& _receiveAddress, Address const& _senderAddress, u256 const& _value, u256 const& _gasPrice, bytesConstRef _data, u256 const& _gas, bytes share, u256 shareid);
-    bool publishShare(CallParameters const& _p, bytes share, u256 shareid, u256 const& _gasPrice, Address const& _origin);
+    bool publishShare(Address const& _receiveAddress, Address const& _senderAddress, u256 const& _value, u256 const& _gasPrice, bytesConstRef _data, u256 const& _gas);
+    bool publishShare(CallParameters const& _p, u256 const& _gasPrice, Address const& _origin);
     
     /// Finalise an operation through accruing the substate into the parent context.
     void accrueSubState(SubState& _parentContext);
