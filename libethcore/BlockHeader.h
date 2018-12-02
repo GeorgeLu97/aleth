@@ -146,7 +146,7 @@ public:
     void setSha3Uncles(h256 const& _v) { m_sha3Uncles = _v; noteDirty(); }
     void setTimestamp(int64_t _v) { m_timestamp = _v; noteDirty(); }
     void setAuthor(Address const& _v) { m_author = _v; noteDirty(); }
-	void setPublicKey(Public const& _v) { m_publicKey = _v; noteDirty(); }
+	void setPublicKey(h512 const& _v) { m_publicKey = _v; noteDirty(); }
     void setRoots(h256 const& _t, h256 const& _r, h256 const& _u, h256 const& _s) { m_transactionsRoot = _t; m_receiptsRoot = _r; m_stateRoot = _s; m_sha3Uncles = _u; noteDirty(); }
     void setGasUsed(u256 const& _v) { m_gasUsed = _v; noteDirty(); }
     void setNumber(int64_t _v) { m_number = _v; noteDirty(); }
@@ -206,7 +206,7 @@ private:
     int64_t m_timestamp = -1;
 
     Address m_author;
-	Public m_publicKey;
+	h512 m_publicKey;
     u256 m_difficulty;
 
     std::vector<bytes> m_seal;		///< Additional (RLP-encoded) header fields.

@@ -1586,6 +1586,15 @@ unsigned BlockChain::chainStartBlockNumber() const
     return value.empty() ? 0 : number(h256(value, h256::FromBinary));
 }
 
+/*
+ * Function: samplePublicKeys 
+ * ----------------------
+ * Uniformly samples Eth public keys
+ *
+ *  n: number of public keys to be sampled
+ *  length: ?
+ */
+
 std::vector<h512> BlockChain::samplePublicKeys(uint64_t n, unsigned length) {
 	default_random_engine generator;
 	uniform_int_distribution<unsigned> distribution((unsigned)max(0, (int)(number() - length)), number() - 1);
@@ -1599,11 +1608,19 @@ std::vector<h512> BlockChain::samplePublicKeys(uint64_t n, unsigned length) {
 	return result;
 }
 
+/*
+ * Function: firstHashAfter 
+ * ----------------------
+ * Find the first block hash after timestamp
+ *
+ * timestamp: the timestamp after which the block should be
+ */
+
 h256 BlockChain::firstHashAfter(uint64_t timestamp) {
 	h256 prevhash = h256();
 	h256 ch = currentHash();
 	BlockHeader h = info(ch);
-	while (h.timestamp() > timestamp) {
+	while ((uint64_t)h.timestamp() > timestamp) {
 		prevhash = ch;
 		ch = h.parentHash();
 		h = info(ch);
@@ -1611,7 +1628,15 @@ h256 BlockChain::firstHashAfter(uint64_t timestamp) {
 	return prevhash;
 }
 
+/*
+ * Function: firstHashAfter 
+ * ----------------------
+ * Verify is block hash is first after timestamp
+ *
+ * timestamp: the timestamp after which the block should be
+ * certhash: hash of the block to be verified
+ */
 bool BlockChain::isFirstHashAfter(uint64_t timestamp, h256 certhash) {
 	BlockHeader h = info(certhash);
-	return h.timestamp() > timestamp && info(h.parentHash()).timestamp <= timestamp;
+	return (uint64_t)h.timestamp() > timestamp && (uint64_t)info(h.parentHash()).timestamp() <= timestamp;
 }

@@ -318,7 +318,7 @@ public:
 
 	h256 firstHashAfter(uint64_t timestamp);
 
-	bool BlockChain::isFirstHashAfter(uint64_t timestamp, h256 certhash);
+	bool isFirstHashAfter(uint64_t timestamp, h256 certhash);
 
 private:
     static h256 chunkId(unsigned _level, unsigned _index) { return h256(_index * 0xff + _level); }

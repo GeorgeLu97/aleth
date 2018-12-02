@@ -404,7 +404,7 @@ using namespace std;
 //use stringSink for unlimited bytes? 
 //shares = size of secrets vector
 /*
- * Function:  secretShare 
+ * Function: secretShare 
  * ----------------------
  * Splits msg into nShares secrets 
  *
@@ -423,7 +423,7 @@ void dev::secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, v
 }
 
 /*
- * Function:  recoverToVec 
+ * Function: recoverToVec 
  * ----------------------
  * Recover msg from secrets
  *
@@ -468,6 +468,16 @@ string dev::recoverToString(int thresh_, vector<string> secrets_) {
 	}
 	return s;
 }
+
+/*
+ * Function:  shareSecrets 
+ * ----------------------
+ * Encrpyt input into nShares using shamir algo
+ *
+ *  thresh_: min number to recover secret
+ *  nShares: number to divided into
+ *  input: input string to be encrypted
+ */
 
 vector<string> dev::shareSecrets(int thresh_, int nShares, string input) {
 

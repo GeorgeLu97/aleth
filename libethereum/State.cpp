@@ -817,6 +817,14 @@ bytes u256toBytes(u256 i) {
 	return b;
 }
 
+/*
+ * Function: recoverData 
+ * ----------------------
+ * Verify keyshares
+ *
+ * _address: the address for the keyshare
+ * output: decrypted keyshare
+ */
 bool State::recoverData(Address const& _address, Secret& output) {
 	std::map<h256, std::pair<u256, u256>> publishedSecrets = storage(_address);
 	FileData f(code(_address));
@@ -830,6 +838,13 @@ bool State::recoverData(Address const& _address, Secret& output) {
 	output = Secret(secretkey); 
 	return true;
 }
+
+/*
+ * Function: decryptShares 
+ * ----------------------
+ * Decrypt keyshares
+ * address:
+ */
 
 std::vector<KeyData> State::decryptShares(Address const& _address, Secret sk, h256 releaseCert) {
 	vector<KeyData> keyshares;
@@ -846,4 +861,5 @@ std::vector<KeyData> State::decryptShares(Address const& _address, Secret sk, h2
 		}
 		index++;
 	}
+    return keyshares;
 }
