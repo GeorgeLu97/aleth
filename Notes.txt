@@ -1,0 +1,13 @@
+Changes -
+ 
+DevCrypto/Common - Add Secret Sharing
+Executive - Account Updates written when submitting keyPublish
+TransactionBase - Add Key + File transactions
+Transaction - Map through TransactionBase changes
+GenesisInfo - changes
+State - recover data when big enough
+
+Todo:
+
+Update Interface / Client - better way of generating data transactions
+Check Release Cert correctness

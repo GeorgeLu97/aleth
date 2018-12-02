@@ -91,6 +91,7 @@ Block::Block(Block const& _s):
     m_currentBlock(_s.m_currentBlock),
     m_currentBytes(_s.m_currentBytes),
     m_author(_s.m_author),
+	m_publicKey(_s.m_publicKey),
     m_sealEngine(_s.m_sealEngine)
 {
     m_committedToSeal = false;
@@ -109,6 +110,7 @@ Block& Block::operator=(Block const& _s)
     m_currentBlock = _s.m_currentBlock;
     m_currentBytes = _s.m_currentBytes;
     m_author = _s.m_author;
+	m_publicKey = _s.m_publicKey;
     m_sealEngine = _s.m_sealEngine;
 
     m_precommit = m_state;
@@ -123,6 +125,7 @@ void Block::resetCurrent(int64_t _timestamp)
     m_transactionSet.clear();
     m_currentBlock = BlockHeader();
     m_currentBlock.setAuthor(m_author);
+	m_currentBlock.setPublicKey(m_publicKey);
     m_currentBlock.setTimestamp(max(m_previousBlock.timestamp() + 1, _timestamp));
     m_currentBytes.clear();
     sealEngine()->populateFromParent(m_currentBlock, m_previousBlock);
@@ -179,6 +182,7 @@ PopulationStatistics Block::populateFromChain(BlockChain const& _bc, h256 const&
 
         // 2. Enact the block's transactions onto this state.
         m_author = bi.author();
+		m_publicKey = bi.publicKey();
         Timer t;
         auto vb = _bc.verifyBlock(&b, function<void(Exception&)>(), _ir | ImportRequirements::TransactionBasic);
         ret.verify = t.elapsed();

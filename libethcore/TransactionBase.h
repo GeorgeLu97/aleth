@@ -19,10 +19,13 @@
 
 #include <libethcore/Common.h>
 #include <libdevcrypto/Common.h>
+#include <libdevcore/Common.h>
 #include <libdevcore/RLP.h>
 #include <libdevcore/SHA3.h>
 
 #include <boost/optional.hpp>
+#include <vector>
+#include <tuple>
 
 namespace dev
 {
@@ -43,6 +46,31 @@ enum class CheckTransaction
 	None,
 	Cheap,
 	Everything
+};
+
+class FileData {
+public:
+	FileData(bytes b);
+	FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, bytes const& trueData);
+	FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, Secret const& symKey, h256 encryptedDataHash);
+	bytes toBytes();
+	uint64_t m_releaseTime;
+	uint64_t m_shareCount;
+	uint64_t m_shareThresh;
+	std::vector<std::tuple<Address, bytes, Signature>> m_candidateList;
+	///bytes m_encryptedData;
+	h256 m_encryptedDataHash;
+	Public m_verifierKey;
+};
+
+class KeyData {
+public:
+	KeyData(bytes b);
+	KeyData(bytes shareData, u256 shareIndex, h256 releaseCert) : m_shareData(shareData), m_shareIndex(shareIndex), m_releaseCert(releaseCert) {};
+	bytes toBytes();
+	bytes m_shareData;
+	u256 m_shareIndex;
+	h256 m_releaseCert;
 };
 
 /// Encodes a transaction, ready to be exported to or freshly imported from RLP.
@@ -66,6 +94,30 @@ public:
 
 	/// Constructs an unsigned contract-creation transaction.
 	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, bytes const& _data, u256 const& _nonce = 0): m_type(ContractCreation), m_nonce(_nonce), m_value(_value), m_gasPrice(_gasPrice), m_gas(_gas), m_data(_data) {}
+
+	///These Transactions don't have signatureless initializers since you need the signature for file publish
+
+	/// Constructs a signed KeyPublish transaction. 
+	///include normal stuff and instead of data include fileID, OrigSig, KeyShare, Post Time Block Hash
+
+	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, Address const& _dest, 
+	bytes const& _shareData, u256 ind, h256 releaseCert, 
+	u256 const& _nonce);
+
+	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, Address const& _dest, 
+		bytes const& _shareData, u256 ind, h256 releaseCert, 
+		u256 const& _nonce, Secret const& _secret);
+
+	/// Constructs a signed FilePublish transaction.
+	///include encrypted data, account - symmetric key encrypted secret share, encrypted? signature. 
+	///Key for shares is auto randomized.
+	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, bytes const& _data, 
+		uint64_t releaseTime, uint64_t shares, uint64_t threshold, std::vector<Public> const& candidates,
+		u256 const& _nonce, Secret const& _secret);
+
+	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, h256 _datahash,
+		uint64_t releaseTime, uint64_t shares, uint64_t threshold, std::vector<Public> const& candidates,
+		u256 const& _nonce, Secret const& _secret, Secret const& symKey);
 
 	/// Constructs a transaction from the given RLP.
 	explicit TransactionBase(bytesConstRef _rlp, CheckTransaction _checkSig);
@@ -99,7 +151,10 @@ public:
 	explicit operator bool() const { return m_type != NullTransaction; }
 
 	/// @returns true if transaction is contract-creation.
-	bool isCreation() const { return m_type == ContractCreation; }
+	bool isCreation() const { return m_type == ContractCreation || m_type == FilePublish; }
+
+	/// @returns true for private data transactions.
+	bool isDataTransaction() const { return m_type == FilePublish || m_type == KeyPublish; }
 
 	/// Serialises this transaction to an RLPStream.
 	/// @throws TransactionIsUnsigned if including signature was requested but it was not initialized
@@ -165,7 +220,9 @@ protected:
 	{
 		NullTransaction,				///< Null transaction.
 		ContractCreation,				///< Transaction to create contracts - receiveAddress() is ignored.
-		MessageCall						///< Transaction to invoke a message call - receiveAddress() is used.
+		MessageCall,					///< Transaction to invoke a message call - receiveAddress() is used.
+		FilePublish,
+		KeyPublish
 	};
 
 	static bool isZeroSignature(u256 const& _r, u256 const& _s) { return !_r && !_s; }

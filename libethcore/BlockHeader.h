@@ -117,6 +117,7 @@ public:
         return m_parentHash == _cmp.parentHash() &&
             m_sha3Uncles == _cmp.sha3Uncles() &&
             m_author == _cmp.author() &&
+			m_publicKey == _cmp.publicKey() &&
             m_stateRoot == _cmp.stateRoot() &&
             m_transactionsRoot == _cmp.transactionsRoot() &&
             m_receiptsRoot == _cmp.receiptsRoot() &&
@@ -145,6 +146,7 @@ public:
     void setSha3Uncles(h256 const& _v) { m_sha3Uncles = _v; noteDirty(); }
     void setTimestamp(int64_t _v) { m_timestamp = _v; noteDirty(); }
     void setAuthor(Address const& _v) { m_author = _v; noteDirty(); }
+	void setPublicKey(Public const& _v) { m_publicKey = _v; noteDirty(); }
     void setRoots(h256 const& _t, h256 const& _r, h256 const& _u, h256 const& _s) { m_transactionsRoot = _t; m_receiptsRoot = _r; m_stateRoot = _s; m_sha3Uncles = _u; noteDirty(); }
     void setGasUsed(u256 const& _v) { m_gasUsed = _v; noteDirty(); }
     void setNumber(int64_t _v) { m_number = _v; noteDirty(); }
@@ -169,6 +171,7 @@ public:
     bytes const& extraData() const { return m_extraData; }
     LogBloom const& logBloom() const { return m_logBloom; }
     u256 const& difficulty() const { return m_difficulty; }
+	h512 const& publicKey() const { return m_publicKey; }
     template <class T> T seal(unsigned _offset = 0) const { T ret; Guard l(m_sealLock); if (_offset < m_seal.size()) ret = RLP(m_seal[_offset]).convert<T>(RLP::VeryStrict); return ret; }
 
 private:
@@ -203,6 +206,7 @@ private:
     int64_t m_timestamp = -1;
 
     Address m_author;
+	Public m_publicKey;
     u256 m_difficulty;
 
     std::vector<bytes> m_seal;		///< Additional (RLP-encoded) header fields.

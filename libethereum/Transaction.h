@@ -26,6 +26,7 @@
 #include <libethcore/ChainOperationParams.h>
 #include <libdevcore/RLP.h>
 #include <libdevcore/SHA3.h>
+#include <vector>
 
 namespace dev
 {
@@ -109,6 +110,20 @@ public:
 	/// Constructs an unsigned contract-creation transaction.
 	Transaction(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, bytes const& _data, u256 const& _nonce = Invalid256):
 		TransactionBase(_value, _gasPrice, _gas, _data, _nonce)
+	{}
+
+	/// Keypublish
+	Transaction(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, Address const& _dest,
+		bytes const& _shareData, u256 ind, h256 releaseCert,
+		u256 const& _nonce, Secret const& _secret) :
+		TransactionBase(_value, _gasPrice, _gas, _dest, _shareData, ind, releaseCert, _nonce, _secret)
+	{}
+
+	/// Constructs a signed FilePublish transaction.
+	Transaction(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, bytes const& _data,
+		uint64_t releaseTime, uint64_t shares, uint64_t threshold, std::vector<Public> const& candidates,
+		u256 const& _nonce, Secret const& _secret) : 
+		TransactionBase(_value, _gasPrice, _gas, _data, releaseTime, shares, threshold, candidates, _nonce, _secret)
 	{}
 
 	/// Constructs a transaction from the given RLP.

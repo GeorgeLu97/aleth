@@ -61,6 +61,7 @@ BlockHeader::BlockHeader(BlockHeader const& _other) :
     m_hash(_other.hashRawRead()),
     m_hashWithout(_other.hashWithoutRawRead())
 {
+	m_publicKey = _other.publicKey();
     assert(*this == _other);
 }
 
@@ -80,6 +81,7 @@ BlockHeader& BlockHeader::operator=(BlockHeader const& _other)
     m_extraData = _other.extraData();
     m_timestamp = _other.timestamp();
     m_author = _other.author();
+	m_publicKey = _other.publicKey();
     m_difficulty = _other.difficulty();
     std::vector<bytes> seal = _other.seal();
     {
@@ -102,6 +104,7 @@ void BlockHeader::clear()
     m_parentHash = h256();
     m_sha3Uncles = EmptyListSHA3;
     m_author = Address();
+	m_publicKey = h512();
     m_stateRoot = EmptyTrie;
     m_transactionsRoot = EmptyTrie;
     m_receiptsRoot = EmptyTrie;
@@ -132,7 +135,7 @@ h256 BlockHeader::hash(IncludeSeal _i) const
 
 void BlockHeader::streamRLPFields(RLPStream& _s) const
 {
-    _s	<< m_parentHash << m_sha3Uncles << m_author << m_stateRoot << m_transactionsRoot << m_receiptsRoot << m_logBloom
+    _s	<< m_parentHash << m_sha3Uncles << m_author << m_publicKey << m_stateRoot << m_transactionsRoot << m_receiptsRoot << m_logBloom
         << m_difficulty << m_number << m_gasLimit << m_gasUsed << m_timestamp << m_extraData;
 }
 
@@ -176,18 +179,19 @@ void BlockHeader::populate(RLP const& _header)
         m_parentHash = _header[field = 0].toHash<h256>(RLP::VeryStrict);
         m_sha3Uncles = _header[field = 1].toHash<h256>(RLP::VeryStrict);
         m_author = _header[field = 2].toHash<Address>(RLP::VeryStrict);
-        m_stateRoot = _header[field = 3].toHash<h256>(RLP::VeryStrict);
-        m_transactionsRoot = _header[field = 4].toHash<h256>(RLP::VeryStrict);
-        m_receiptsRoot = _header[field = 5].toHash<h256>(RLP::VeryStrict);
-        m_logBloom = _header[field = 6].toHash<LogBloom>(RLP::VeryStrict);
-        m_difficulty = _header[field = 7].toInt<u256>();
-        m_number = _header[field = 8].toPositiveInt64();
-        m_gasLimit = _header[field = 9].toInt<u256>();
-        m_gasUsed = _header[field = 10].toInt<u256>();
-        m_timestamp = _header[field = 11].toPositiveInt64();
-        m_extraData = _header[field = 12].toBytes();
+		m_publicKey = _header[field = 3].toHash<h512>(RLP::VeryStrict);
+        m_stateRoot = _header[field = 4].toHash<h256>(RLP::VeryStrict);
+        m_transactionsRoot = _header[field = 5].toHash<h256>(RLP::VeryStrict);
+        m_receiptsRoot = _header[field = 6].toHash<h256>(RLP::VeryStrict);
+        m_logBloom = _header[field = 7].toHash<LogBloom>(RLP::VeryStrict);
+        m_difficulty = _header[field = 8].toInt<u256>();
+        m_number = _header[field = 9].toPositiveInt64();
+        m_gasLimit = _header[field = 10].toInt<u256>();
+        m_gasUsed = _header[field = 11].toInt<u256>();
+        m_timestamp = _header[field = 12].toPositiveInt64();
+        m_extraData = _header[field = 13].toBytes();
         m_seal.clear();
-        for (unsigned i = 13; i < _header.itemCount(); ++i)
+        for (unsigned i = 14; i < _header.itemCount(); ++i)
             m_seal.push_back(_header[i].data().toBytes());
     }
     catch (Exception const& _e)

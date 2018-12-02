@@ -30,6 +30,12 @@
 #include <cryptopp/pwdbased.h>
 #include <cryptopp/sha.h>
 #include <cryptopp/modes.h>
+#include <cryptopp/ida.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/files.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/ida.h>
+#include <cryptopp/randpool.h>
 #include <libscrypt.h>
 #include <libdevcore/SHA3.h>
 #include <libdevcore/RLP.h>
@@ -389,4 +395,102 @@ bytes ecies::kdf(Secret const& _z, bytes const& _s1, unsigned kdByteLen)
 
 	k.resize(kdByteLen);
 	return k;
+}
+
+using namespace CryptoPP;
+using namespace std;
+
+//single file -> init
+//use stringSink for unlimited bytes? 
+//shares = size of secrets vector
+/*
+ * Function:  secretShare 
+ * ----------------------
+ * Splits msg into nShares secrets 
+ *
+ *  threshold: min number to recover secret
+ *	nShares: number of secrets
+ *  msg: the message to divided
+ *  bytesecrets: the secret output 
+ */
+
+void dev::secretShare(uint64_t threshold, uint64_t nShares, bytesConstRef msg, vector<bytes>& bytesecrets) {
+	string msgstring(msg.begin(), msg.end());
+	vector<string> s = shareSecrets((int)threshold, (int)nShares, msgstring);
+	for (auto it = s.begin(); it != s.end(); it++) {
+		bytesecrets.emplace_back(it->begin(), it->end());
+	}
+}
+
+/*
+ * Function:  recoverToVec 
+ * ----------------------
+ * Recover msg from secrets
+ *
+ *  threshold: min number to recover secret
+ *	secrets: the secrets recovered to msg
+ *  msg: the message output
+ */
+void dev::recoverToVec(uint64_t threshold, vector<bytes> secrets, bytes& msg) {
+	vector<string> stringsecrets;
+	for (auto it = secrets.begin(); it != secrets.end(); it++) {
+		string s(it->begin(), it->end());
+		stringsecrets.push_back(s);
+	}
+	string s = recoverToString((int)threshold, stringsecrets);
+	msg = bytes(s.begin(), s.end());
+}
+
+string dev::recoverToString(int thresh_, vector<string> secrets_) {
+	string s;
+	SecretRecovery recovery(thresh_, new StringSink(s));
+
+	vector_member_ptrs<StringSource> stringSources(thresh_);
+	SecByteBlock channel(4);
+	int i;
+	for (i = 0; i < thresh_; i++)
+	{
+		stringSources[i].reset(new StringSource(secrets_[i], false));
+		stringSources[i]->Pump(4);
+		stringSources[i]->Get(channel, 4);
+		stringSources[i]->Attach(new ChannelSwitch(recovery, string((char *)channel.begin(), 4)));
+	}
+
+	/*
+	while (stringSources[0]->Pump(256))
+		for (i = 1; i < thresh_; i++)
+			stringSources[i]->Pump(256);
+			*/
+
+	for (i = 0; i < thresh_; i++)
+	{
+		stringSources[i]->PumpAll();
+	}
+	return s;
+}
+
+vector<string> dev::shareSecrets(int thresh_, int nShares, string input) {
+
+	AutoSeededRandomPool rng;
+
+	ChannelSwitch *channelSwitch = new ChannelSwitch;
+
+	StringSource source(input, false, new SecretSharing(rng,
+		thresh_, nShares, channelSwitch));
+
+	vector_member_ptrs<StringSink> stringSinks(nShares);
+	vector<string> secrets(nShares);
+	string channel;
+	for (int i = 0; i < nShares; i++)
+	{
+		stringSinks[i].reset(new StringSink(secrets[i]));
+
+		channel = WordToString<word32>(i);
+		stringSinks[i]->Put((byte*)channel.data(), 4);
+		channelSwitch->AddRoute(channel, *stringSinks[i], DEFAULT_CHANNEL);
+	}
+
+	source.PumpAll();
+
+	return secrets;
 }

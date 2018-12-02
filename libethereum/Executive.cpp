@@ -22,6 +22,8 @@
 
 #include <libdevcore/CommonIO.h>
 #include <libethcore/CommonJS.h>
+#include <libdevcore/FixedHash.h>
+#include <libdevcrypto/Common.h>
 #include <libevm/LegacyVM.h>
 #include <libevm/VMFactory.h>
 
@@ -29,6 +31,7 @@
 #include <boost/timer.hpp>
 
 #include <numeric>
+#include <tuple>
 
 using namespace std;
 using namespace dev;
@@ -276,10 +279,16 @@ bool Executive::execute()
     m_s.subBalance(m_t.sender(), m_gasCost);
 
     assert(m_t.gas() >= (u256)m_baseGasRequired);
-    if (m_t.isCreation())
+    if (m_t.isCreation()) /* File Publish should work the same as contract creation */
         return create(m_t.sender(), m_t.value(), m_t.gasPrice(), m_t.gas() - (u256)m_baseGasRequired, &m_t.data(), m_t.sender());
-    else
-        return call(m_t.receiveAddress(), m_t.sender(), m_t.value(), m_t.gasPrice(), bytesConstRef(&m_t.data()), m_t.gas() - (u256)m_baseGasRequired);
+	else {
+		if (m_t.isDataTransaction()) {
+			return publishShare(m_t.receiveAddress(), m_t.sender(), m_t.value(), m_t.gasPrice(), bytesConstRef(&m_t.data()), m_t.gas() - (u256)m_baseGasRequired);
+		}
+		else {
+			return call(m_t.receiveAddress(), m_t.sender(), m_t.value(), m_t.gasPrice(), bytesConstRef(&m_t.data()), m_t.gas() - (u256)m_baseGasRequired);
+		}
+	}
 }
 
 bool Executive::call(Address const& _receiveAddress, Address const& _senderAddress, u256 const& _value, u256 const& _gasPrice, bytesConstRef _data, u256 const& _gas)
@@ -358,6 +367,101 @@ bool Executive::create(Address const& _txSender, u256 const& _endowment, u256 co
 {
     // Contract creation by an external account is the same as CREATE opcode
     return createOpcode(_txSender, _endowment, _gasPrice, _gas, _init, _origin);
+}
+
+/*
+ * Function 1: publishShare 
+ * ----------------------
+ * Creates params for the key publish
+ *
+ *  _receiveAddress: destination of the publish
+ *  _senderAddress: provides the gas
+ *  _value: 
+ *  _gasPrice: gas required to publish
+ *  _data: the data to publish
+ *  _gas: gas available
+ *  share: share data
+ *  shareid: index of the shares data
+ */
+bool Executive::publishShare(Address const& _receiveAddress, Address const& _senderAddress, u256 const& _value, u256 const& _gasPrice, bytesConstRef _data, u256 const& _gas)
+{
+    CallParameters params{_senderAddress, _receiveAddress, _receiveAddress, _value, _value, _gas, _data, {}};
+    return publishShare(params, _gasPrice, _senderAddress);
+}
+
+
+/*
+bytes u256toBytes(u256 i) {
+	int len = (int)(i & 0xFF);
+	bytes b;
+	for (i = 0; i < len; i++) {
+		i >>= 8;
+		b.push_back((byte)(i & 0xFF));
+	}
+	return b;
+}
+*/
+
+u256 bytestoU256(bytes b) {
+	u256 i;
+	for (auto it = b.rbegin(); it != b.rend(); it++) {
+		i += (u256)(*it);
+		i <<= 8;
+	}
+	i += (u256)b.size();
+	return i;
+}
+
+/*
+ * Function 2:  publishShare 
+ * ----------------------
+ * Account Updates written when submitting keyPublish
+ *
+ *  _p: the paramters for the tranasction
+ *  _gasPrice: gas required to publish
+ *  share: share data
+ *  shareid: index of the shares data
+ *  _origin: sending address
+ */
+bool Executive::publishShare(CallParameters const& _p, u256 const& _gasPrice, Address const& _origin)
+{
+	(void)_gasPrice;
+	(void)_origin;
+    if (m_t)
+    {
+        // FIXME: changelog contains unrevertable balance change that paid
+        //        for the transaction.
+        // Increment associated nonce for sender.
+        if (_p.senderAddress != MaxAddress ||
+            m_envInfo.number() < m_sealEngine.chainParams().experimentalForkBlock)  // EIP86
+            m_s.incNonce(_p.senderAddress);
+    }
+
+    m_savepoint = m_s.savepoint();
+
+    // Transfer ether.
+    m_s.transferBalance(_p.senderAddress, _p.receiveAddress, _p.valueTransfer);
+    
+    /// Get the value of a storage position of an account.
+    /// @returns 0 if no account exists at that address.
+    {
+		KeyData shareinfo(m_t.data());
+        FileData origData(m_s.code(_p.receiveAddress));
+		int ind = (int)shareinfo.m_shareIndex;
+        SignatureStruct s(std::get<2>(origData.m_candidateList[ind]));
+        if(m_s.storage(_p.receiveAddress, ind) == 0 &&
+            verify(origData.m_verifierKey, s, dev::sha3(shareinfo.m_shareData))  
+			) {  //TODO: Check Certificate Correct, need blockchain
+            m_s.setStorage(_p.receiveAddress, ind, bytestoU256(shareinfo.m_shareData) ); // Needs to be short enough to work
+            return !m_ext;
+        } else {
+            m_excepted = TransactionException::Unknown;
+			m_s.rollback(m_savepoint);
+            return true;
+        }
+    }
+	
+
 }
 
 bool Executive::createOpcode(Address const& _sender, u256 const& _endowment, u256 const& _gasPrice, u256 const& _gas, bytesConstRef _init, Address const& _origin)

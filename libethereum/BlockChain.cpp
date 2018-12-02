@@ -38,6 +38,7 @@
 
 #include <boost/exception/errinfo_nested_exception.hpp>
 #include <boost/filesystem.hpp>
+#include <algorithm>
 
 using namespace std;
 using namespace dev;
@@ -1583,4 +1584,34 @@ unsigned BlockChain::chainStartBlockNumber() const
 {
     auto const value = m_extrasDB->lookup(c_sliceChainStart);
     return value.empty() ? 0 : number(h256(value, h256::FromBinary));
+}
+
+std::vector<h512> BlockChain::samplePublicKeys(uint64_t n, unsigned length) {
+	default_random_engine generator;
+	uniform_int_distribution<unsigned> distribution((unsigned)max(0, (int)(number() - length)), number() - 1);
+	vector<h512> result;
+	for (uint64_t i = 1; i <= n; i++) {
+		unsigned blocknum = distribution(generator);
+		Public sample = info(numberHash(blocknum)).publicKey();
+		//if(sample == h512()) i--;
+		result.push_back(sample);
+	}
+	return result;
+}
+
+h256 BlockChain::firstHashAfter(uint64_t timestamp) {
+	h256 prevhash = h256();
+	h256 ch = currentHash();
+	BlockHeader h = info(ch);
+	while (h.timestamp() > timestamp) {
+		prevhash = ch;
+		ch = h.parentHash();
+		h = info(ch);
+	}
+	return prevhash;
+}
+
+bool BlockChain::isFirstHashAfter(uint64_t timestamp, h256 certhash) {
+	BlockHeader h = info(certhash);
+	return h.timestamp() > timestamp && info(h.parentHash()).timestamp <= timestamp;
 }
