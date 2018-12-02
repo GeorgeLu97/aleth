@@ -30,6 +30,12 @@ using namespace std;
 using namespace dev;
 using namespace dev::eth;
 
+/*
+ * Constructor 1: FileData 
+ * ----------------------
+ * Encrypt bytes
+ * b: bytes to be serialized and encrypted
+ */
 FileData::FileData(bytes b) {
 	RLP dataContent(b);
 	m_releaseTime = dataContent[0].toInt<uint64_t>();
@@ -43,6 +49,13 @@ FileData::FileData(bytes b) {
 	m_verifierKey = Public(dataContent[4].toBytes());
 	m_encryptedDataHash = dataContent[5].toHash<h256>();
 }
+
+/*
+ * Constructor 2: FileData 
+ * ----------------------
+ * Encrypt bytes
+ * b: bytes to be serialized and encrypted
+ */
 
 FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, vector<Public> candidates, Secret const& secret, bytes const& trueData) : m_releaseTime(releaseTime), m_shareCount(shares), m_shareThresh(thresh)
 {
@@ -164,7 +177,7 @@ TransactionBase::TransactionBase(bytesConstRef _rlpData, CheckTransaction _check
 /*
  * Constructor 1:  TransactionBase 
  * ----------------------
- * Add Key + File transactions
+ * Add KeyPublish transactions
  *
  *  _value: transaction amount
  *	_gasPrice: gas price per step
