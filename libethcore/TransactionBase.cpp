@@ -165,26 +165,20 @@ TransactionBase::TransactionBase(bytesConstRef _rlpData, CheckTransaction _check
 	}
 }
 
-// This is to publish the file(a part of the secret)
-// What is h256?
-// What is ind?
-// What does this do:
-// : m_type(KeyPublish), m_nonce(_nonce), m_value(_value), m_receiveAddress(_dest), m_gasPrice(_gasPrice), m_gas(_gas) ?
-// This is for recovery
 
 /*
- * Constructor:  TransactionBase 
+ * Constructor 1:  TransactionBase 
  * ----------------------
  * Add Key + File transactions
  *
- *  _value: 
- *	_gasPrice: gas required to make transaction
- *  _gas:
+ *  _value: transaction amount
+ *	_gasPrice: gas price per step
+ *  _gas: gas provided 
  *	_dest: destination address of file/key
  *  _shareData: data to be stored
- *	ind: 
- *  (?)releaseCert: the authorization
- *  (?)_nonce: nonce for the transaction
+ *	ind: index of the secret
+ *  releaseCert: signature
+ *  _nonce: nonce for the transaction
  */
 
 TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, Address const& _dest, 
@@ -200,18 +194,18 @@ TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256
 // Previous with a signature
 
 /*
- * Constructor:  TransactionBase 
+ * Constructor 2:  TransactionBase 
  * ----------------------
  * Add Key + File transactions with a signature
  *
- *  _value: 
- *	_gasPrice: gas required to make transaction
- *  _gas:
+ *  _value: transaction amount
+ *	_gasPrice: gas price per step
+ *  _gas: gas provided 
  *	_dest: destination address of file/key
  *  _shareData: data to be stored
- *	ind: 
- *  (?)releaseCert: the authorization
- *  (?)_nonce: nonce for the transaction
+ *	ind: index of the secret
+ *  releaseCert: signature
+ *  _nonce: nonce for the transaction
  * 	_secret: key used to sign
  */
 
@@ -229,18 +223,18 @@ TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256
 ///shares = { address[0], share[1], r[2], s[3], v[4] }
 
 /*
- * Constructor:  TransactionBase 
+ * Constructor 3:  TransactionBase 
  * ----------------------
  * Constructs a signed FilePublish transaction.
  *
- *  _value: 
- *	_gasPrice: gas required to make transaction
- *  _gas:
+ *  _value: transaction amount
+ *	_gasPrice: gas price per step
+ *  _gas: gas provided 
  *  _data: data to for the transaction
  *  releaseTime: time to release the FilePublish transaction
  *  shares: number of shares
- *  threshold: the threshold for one share
- *	candidates: 
+ *  threshold: min secrets required to recover msg
+ *	candidates: list a public keys to split secret 
  *  _nonce: nonce for the transaction
  * 	_secret: key used to sign
  */
