@@ -47,12 +47,17 @@ FileData::FileData(bytes b) {
 FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, vector<Public> candidates, Secret const& secret, bytes const& trueData) : m_releaseTime(releaseTime), m_shareCount(shares), m_shareThresh(thresh)
 {
 	KeyPair k(Secret::random());
-	bytes keyBytes = k.secret().makeInsecure().asBytes();
-	vector<bytes> secrets;
-	m_verifierKey = toPublic(secret);
 	bytes encryptedData;
 	encryptSym(k.secret(), &trueData, encryptedData);
-	m_encryptedDataHash = dev::sha3(encryptedData);
+	FileData(releaseTime, shares, thresh, candidates, secret, k.secret(), dev::sha3(encryptedData));
+}
+
+FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, Secret const& symKey, h256 encryptedDataHash) {
+	KeyPair k(Secret::random());
+	bytes keyBytes = symKey.makeInsecure().asBytes();
+	vector<bytes> secrets;
+	m_verifierKey = toPublic(secret);
+	m_encryptedDataHash = encryptedDataHash;
 	secretShare(thresh, shares, vector_ref<byte const>(&keyBytes), secrets);
 	for (uint64_t i = 0; i < shares; i++) {
 		bytes encryptedShare;
@@ -246,6 +251,16 @@ TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256
 	// Building the byte stream to push data out
 	RLPStream dataContent;
 	FileData f(releaseTime, shares, threshold, candidates, _secret, _data);
+	m_data = f.toBytes();
+	sign(_secret);
+}
+
+TransactionBase::TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, h256 _datahash,
+	uint64_t releaseTime, uint64_t shares, uint64_t threshold, std::vector<Public> const& candidates,
+	u256 const& _nonce, Secret const& _secret, Secret const& symKey) : m_type(FilePublish), m_nonce(_nonce), m_value(_value), m_gasPrice(_gasPrice), m_gas(_gas) {
+	// Building the byte stream to push data out
+	RLPStream dataContent;
+	FileData f(releaseTime, shares, threshold, candidates, _secret, symKey, _datahash);
 	m_data = f.toBytes();
 	sign(_secret);
 }

@@ -52,6 +52,7 @@ class FileData {
 public:
 	FileData(bytes b);
 	FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, bytes const& trueData);
+	FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, Secret const& symKey, h256 encryptedDataHash);
 	bytes toBytes();
 	uint64_t m_releaseTime;
 	uint64_t m_shareCount;
@@ -113,6 +114,10 @@ public:
 	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, bytes const& _data, 
 		uint64_t releaseTime, uint64_t shares, uint64_t threshold, std::vector<Public> const& candidates,
 		u256 const& _nonce, Secret const& _secret);
+
+	TransactionBase(u256 const& _value, u256 const& _gasPrice, u256 const& _gas, h256 _datahash,
+		uint64_t releaseTime, uint64_t shares, uint64_t threshold, std::vector<Public> const& candidates,
+		u256 const& _nonce, Secret const& _secret, Secret const& symKey);
 
 	/// Constructs a transaction from the given RLP.
 	explicit TransactionBase(bytesConstRef _rlp, CheckTransaction _checkSig);
