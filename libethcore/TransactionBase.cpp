@@ -62,10 +62,10 @@ FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, vecto
 	KeyPair k(Secret::random());
 	bytes encryptedData;
 	encryptSym(k.secret(), &trueData, encryptedData);
-	FileData(releaseTime, shares, thresh, candidates, secret, k.secret(), dev::sha3(encryptedData));
+	*this = FileData(releaseTime, shares, thresh, candidates, secret, k.secret(), dev::sha3(encryptedData));
 }
 
-FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, Secret const& symKey, h256 encryptedDataHash) {
+FileData::FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, Secret const& symKey, h256 encryptedDataHash) : m_releaseTime(releaseTime), m_shareCount(shares), m_shareThresh(thresh) {
 	KeyPair k(Secret::random());
 	bytes keyBytes = symKey.makeInsecure().asBytes();
 	vector<bytes> secrets;

@@ -48,7 +48,7 @@ enum class CheckTransaction
 	Everything
 };
 
-class FileData {
+struct FileData {
 public:
 	FileData(bytes b);
 	FileData(uint64_t releaseTime, uint64_t shares, uint64_t thresh, std::vector<Public> candidates, Secret const& secret, bytes const& trueData);
@@ -63,7 +63,7 @@ public:
 	Public m_verifierKey;
 };
 
-class KeyData {
+struct KeyData {
 public:
 	KeyData(bytes b);
 	KeyData(bytes shareData, u256 shareIndex, h256 releaseCert) : m_shareData(shareData), m_shareIndex(shareIndex), m_releaseCert(releaseCert) {};
